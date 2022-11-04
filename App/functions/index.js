@@ -5,51 +5,71 @@ const functions = require("firebase-functions");
 const admin = require('firebase-admin');
 admin.initializeApp();
 
-// Take the GitHub Payload passed to this HTTP endpoint and insert it into 
-// Firestore under the path /users/:documentId
-exports.install = functions.https.onRequest(async (request, response) => {
-    // Log the original request.
-    functions.logger.log(request);
+import got from 'got';
 
-    // Push the new message into Firestore using the Firebase Admin SDK.
-    // const writeResult = await admin.firestore().collection('users').add(request);
-    
-    // Send back a message that we've successfully written the message.
-    response.json({'message': 'Successfully Installed'});
+// Store the Authorization Code in Firestore, and use it to generate an Access Token. Redirect to Starstruck website.
+exports.authorization = functions.https.onRequest(async (request, response) => {
+    try {
+        // Request an Access Token from GitHub using the Got SDK.
+        const data = await got(`https://github.com/login/oauth/access_token?client_id=9637b925c8fc340a9c4c&client_secret=4f370f577e6ac55933e787ccb0a075018fad0044&code=${request.query.code}`, {
+            method: 'POST',
+            headers: { 'Accept': 'application/json' }
+        }).json();
+
+        // Store the Access Token in Firestore using the Firebase Admin SDK.
+        const writeResult = await admin.firestore().collection('authorizations').add({ ...data, user: 'TEST' });
+
+        // Redirect to Starstruck website success screen!
+        response.redirect('https://joshkautz.github.io/Starstruck-GitHub-App/');
+    } catch (error) {
+        // Log the error.
+        functions.logger.error(error);
+
+        // Redirect to Starstruck website error screen!
+        response.redirect('https://www.google.com/');
+    }
 });
 
-// Listens for new documents added to /users/:documentId and performs actions
-// with the GitHub Starring REST API.
-// exports.createRepo = functions.firestore.document('/users/{documentId}')
-//     .onCreate((snap, context) => {
-//         functions.logger.log(snap);
-//         functions.logger.log(snap.data());
+// Triggered upon creation of documents in the `/authorizations` Firestore collection.
+// Creates a new repository for the GitHub user via the GitHub REST API.
+exports.createRepo = functions.firestore.document('/authorizations/{documentId}')
+    .onCreate((snap, context) => {
+        try {
+            // Grab the current value of what was written to Firestore.
+            const data = snap.data();
 
-//         // Grab the current value of what was written to Firestore.
-//         // const data = snap.data();
-
-//         // Access the parameter `{documentId}` with `context.params`
-//         // functions.logger.log('Accessing GitHub Starring REST API.', context.params.documentId, data);
-
-//         // Create Repo
-//         // Star other Repos.
-//         // Have other users star this repo.
-
-//         // You must return a Promise when performing asynchronous tasks inside a Functions such as
-//         // writing to Firestore.
-//         // Setting an 'uppercase' field in Firestore document returns a Promise.
-//         // return snap.ref.set({ uppercase }, { merge: true });
-
-//         return;
-//     });
+            // Create a new repository using the GitHub API.
+            return got('https://api.github.com/user/repos', {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${data.access_token}` },
+                json: { "name": `Starstruck-${context.params.documentId}` }
+            });
+        } catch (error) {
+            // Log the error.
+            functions.logger.error(error);
+        }
+    });
 
 // Receive GitHub Hooks to monitor if users uninstall the GitHub App or Revoke Authorization.
-exports.hook = functions.https.onRequest(async (request, response) => {
-    // Log the original request.
-    functions.logger.log(request);
-    
-    // TODO: Remove user from Firestore. (Delete their repo? Have users unstar their repo?)
+// exports.hook = functions.https.onRequest(async (request, response) => {
+//     // Log the original request.
+//     functions.logger.log(request);
 
-    // Send back a message that we've successfully written the message.
-    response.json({'message': 'Hook Received'});
-});
+//     // TODO: Remove user from Firestore. (Delete their repo? Have users unstar their repo?)
+
+//     // Send back a message that we've successfully written the message.
+//     response.json(request);
+// });
+
+// Store the GitHub passed to this HTTP endpoint and insert it into 
+// Firestore under the path /installations/:documentId
+// exports.install = functions.https.onRequest(async (request, response) => {
+//     // Log the original request.
+//     functions.logger.log(request.query);
+
+//     // Push the new message into Firestore using the Firebase Admin SDK.
+//     const writeResult = await admin.firestore().collection('installations').add(request.query);
+
+//     // Send back a message that we've successfully written the message.
+//     response.json(writeResult);
+// });
