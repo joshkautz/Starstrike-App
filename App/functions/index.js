@@ -7,13 +7,15 @@ admin.initializeApp();
 
 // Take the GitHub Payload passed to this HTTP endpoint and insert it into 
 // Firestore under the path /users/:documentId
-exports.addUser = functions.https.onRequest(async (request, response) => {
+exports.install = functions.https.onRequest(async (request, response) => {
     // Log the original request.
     functions.logger.log(request);
+
     // Push the new message into Firestore using the Firebase Admin SDK.
     // const writeResult = await admin.firestore().collection('users').add(request);
+    
     // Send back a message that we've successfully written the message.
-    response.json({'message': 'tahnk you'});
+    response.json({'message': 'Successfully Installed'});
 });
 
 // Listens for new documents added to /users/:documentId and performs actions
@@ -40,3 +42,14 @@ exports.addUser = functions.https.onRequest(async (request, response) => {
 
 //         return;
 //     });
+
+// Receive GitHub Hooks to monitor if users uninstall the GitHub App or Revoke Authorization.
+exports.hook = functions.https.onRequest(async (request, response) => {
+    // Log the original request.
+    functions.logger.log(request);
+    
+    // TODO: Remove user from Firestore. (Delete their repo? Have users unstar their repo?)
+
+    // Send back a message that we've successfully written the message.
+    response.json({'message': 'Hook Received'});
+});
