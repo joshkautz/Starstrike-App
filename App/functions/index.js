@@ -1,18 +1,23 @@
+// Promise based HTTP client for the browser and node.js.
+const axios = require('axios').default;
+
 // The Cloud Functions for Firebase SDK to create Cloud Functions and set up triggers.
 const functions = require("firebase-functions");
 
 // The Firebase Admin SDK to access Firestore.
 const admin = require('firebase-admin');
-admin.initializeApp();
+if (admin.apps.length === 0) {
+    admin.initializeApp();
+}
 
-import got from 'got';
 
 // Store the Authorization Code in Firestore, and use it to generate an Access Token. Redirect to Starstruck website.
 exports.authorization = functions.https.onRequest(async (request, response) => {
     try {
-        // Request an Access Token from GitHub using the Got SDK.
-        const data = await got(`https://github.com/login/oauth/access_token?client_id=9637b925c8fc340a9c4c&client_secret=4f370f577e6ac55933e787ccb0a075018fad0044&code=${request.query.code}`, {
+        // Request an Access Token from GitHub using the Axios library.
+        const data = await axios({
             method: 'POST',
+            url: `https://github.com/login/oauth/access_token?client_id=9637b925c8fc340a9c4c&client_secret=${process.env.CLIENT_SECRET}&code=${request.query.code}`,
             headers: { 'Accept': 'application/json' }
         }).json();
 
@@ -39,8 +44,9 @@ exports.createRepo = functions.firestore.document('/authorizations/{documentId}'
             const data = snap.data();
 
             // Create a new repository using the GitHub API.
-            return got('https://api.github.com/user/repos', {
+            return axios({
                 method: 'POST',
+                url: 'https://api.github.com/user/repos',
                 headers: { 'Authorization': `Bearer ${data.access_token}` },
                 json: { "name": `Starstruck-${context.params.documentId}` }
             });
