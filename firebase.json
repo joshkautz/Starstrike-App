@@ -5,7 +5,7 @@
   },
   "functions": [
     {
-      "source": "functions",
+      "source": "Functions",
       "codebase": "default",
       "ignore": [
         "node_modules",
@@ -29,5 +29,19 @@
       "enabled": true
     },
     "singleProjectMode": true
+  },
+  "hosting": {
+    "public": "Site",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
   }
 }
