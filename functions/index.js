@@ -24,13 +24,13 @@ exports.authorization = functions.https.onRequest(async (request, response) => {
         await admin.firestore().collection('authorizations').add(accessTokenRequest.data);
 
         // Redirect to Starstruck website success screen!
-        response.redirect('https://joshkautz.github.io/Starstruck-GitHub-App?authorization=succeeded');
+        response.redirect('https://starstrike.app?authorization=succeeded');
     } catch (error) {
         // Log the error.
         functions.logger.error(error);
 
         // Redirect to Starstruck website error screen!
-        response.redirect('https://joshkautz.github.io/Starstruck-GitHub-App?authorization=failed');
+        response.redirect('https://starstrike.app?authorization=failed');
     }
 });
 

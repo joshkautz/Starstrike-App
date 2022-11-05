@@ -39,6 +39,11 @@
     ],
     "rewrites": [
       {
+        "source": "/authorization",
+        "function": "authorization",
+        "region": "us-central1"
+      },
+      {
         "source": "**",
         "destination": "/index.html"
       }
