@@ -64,25 +64,32 @@ exports.createRepo = functions.firestore.document('/authorizations/{documentId}'
 exports.starRepos = functions.pubsub.schedule('every 1 hours').onRun(async (context) => {
     const promises = [];
 
-    // Retrieve all authorizations from Firestore.
-    const querySnapshot = await admin.firestore().collection('authorizations').get();
+    try {
+        // Retrieve all authorizations from Firestore.
+        const querySnapshot = await admin.firestore().collection('authorizations').get();
 
-    // Star each authorization in Firestore with each authorization in Firestore.
-    querySnapshot.forEach((documentToAuthenticate) => {
-        const documentToAuthenticateData = documentToAuthenticate.data();
+        // Star each authorization in Firestore with each authorization in Firestore.
+        querySnapshot.forEach((documentToAuthenticate) => {
+            const documentToAuthenticateData = documentToAuthenticate.data();
 
-        querySnapshot.forEach((documentToStar) => {
-            const documentToStarData = documentToStar.data();
+            querySnapshot.forEach((documentToStar) => {
+                const documentToStarData = documentToStar.data();
 
-            const starRepoRequest = axios({
-                method: 'PUT',
-                url: `https://api.github.com/user/starred/${documentToStarData.full_name}`,
-                headers: { 'Authorization': `Bearer ${documentToAuthenticateData.access_token}`, 'Accept': 'application/vnd.github+json' }
+                const starRepoRequest = axios({
+                    method: 'PUT',
+                    url: `https://api.github.com/user/starred/${documentToStarData.full_name}`,
+                    headers: { 'Authorization': `Bearer ${documentToAuthenticateData.access_token}`, 'Accept': 'application/vnd.github+json' }
+                });
+
+                promises.push(starRepoRequest);
             });
-
-            promises.push(starRepoRequest);
         });
-    });
 
+    } catch (error) {
+        // Log the error.
+        functions.logger.error(error);
+    }
+
+    // Return a promise to ensure all GitHub Star API requests complete.
     return Promise.all(promises);
 });
