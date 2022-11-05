@@ -257,6 +257,19 @@
       </symbol>
     </svg>
 
+    <script>
+      function evaluateAuthorization() {
+        const queryString = window.location.search;
+        const urlParams = new URLSearchParams(queryString);
+        if (urlParams.has("authorization")) {
+          if (urlParams.get("authorization") == "succeeded") alert("good");
+          else if (urlParams.get("authorization") == "failed") alert("bad");
+        }
+      }
+
+      document.addEventListener("DOMContentLoaded", evaluateAuthorization);
+    </script>
+
     <!-- Navigation -->
     <nav class="side pole">
       <div class="navigation">
