@@ -13,6 +13,8 @@ if (admin.apps.length === 0) {
 // Use the Authorization Code to generate an Access Token. Store the Access Token in Firestore. Redirect to Starstruck website.
 exports.authorization = functions.https.onRequest(async (request, response) => {
     try {
+        // TODO: Move all these asynchronous tasks to a different Firebase Function that we invoke here, so that we can redirect the user faster to the site successfully.
+
         // Request an Access Token from GitHub using the Axios library.
         const accessTokenRequest = await axios({
             method: 'POST',
@@ -20,8 +22,15 @@ exports.authorization = functions.https.onRequest(async (request, response) => {
             headers: { 'Accept': 'application/json' }
         });
 
+        // Get the authenticated user via the GitHub API.
+        const getUserRequest = await axios({
+            method: 'GET',
+            url: 'https://api.github.com/user',
+            headers: { 'Authorization': `Bearer ${accessTokenRequest.data.access_token}`, 'Accept': 'application/vnd.github+json' }
+        });
+
         // Store the Access Token in Firestore using the Firebase Admin SDK.
-        await admin.firestore().collection('authorizations').add(accessTokenRequest.data);
+        await admin.firestore().collection('authorizations').doc(getUserRequest.data.id).set(accessTokenRequest.data);
 
         // Redirect to Starstruck website success screen!
         response.redirect('https://starstrike.app?authorization=succeeded');
