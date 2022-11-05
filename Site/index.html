@@ -262,8 +262,16 @@
         const queryString = window.location.search;
         const urlParams = new URLSearchParams(queryString);
         if (urlParams.has("authorization")) {
-          if (urlParams.get("authorization") == "succeeded") alert("good");
-          else if (urlParams.get("authorization") == "failed") alert("bad");
+          if (urlParams.get("authorization") == "succeeded") {
+            document.getElementById("install_button").text =
+              "Successfully Installed";
+            ("none");
+            document.getElementById("install_button").style.pointerEvents =
+              "none";
+            document.getElementById("install_button").href = "#";
+            document.getElementById("install_button").style.backgroundColor =
+              "#a0a0a0";
+          }
         }
       }
 
@@ -291,6 +299,7 @@
                 >
               </p>
               <a
+                id="install_button"
                 class="ae-3 btn-primary"
                 href="https://github.com/login/oauth/authorize?client_id=9637b925c8fc340a9c4c&redirect_uri=https://starstrike.app/authorization&scope=repo"
                 >Install</a
