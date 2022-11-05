@@ -20,8 +20,6 @@ exports.authorization = functions.https.onRequest(async (request, response) => {
             headers: { 'Accept': 'application/json' }
         });
 
-        functions.logger.info(createRepoRequest.data);
-
         // Store the Access Token in Firestore using the Firebase Admin SDK.
         await admin.firestore().collection('authorizations').add(accessTokenRequest.data);
 
@@ -44,8 +42,6 @@ exports.createRepo = functions.firestore.document('/authorizations/{documentId}'
             // Get the current value of what was written to Firestore.
             const data = snap.data();
 
-            functions.logger.info(context.params.documentId, data);
-
             // Create a new repository using the GitHub API.
             const createRepoRequest = await axios({
                 method: 'POST',
@@ -54,21 +50,9 @@ exports.createRepo = functions.firestore.document('/authorizations/{documentId}'
                 data: { "name": `Starstruck-${context.params.documentId}` }
             });
 
-            functions.logger.info(createRepoRequest.data);
-
-            // Get the authenticated user using the GitHub API.
-            const getAuthenticatedUserRequest = await axios({
-                method: 'GET',
-                url: 'https://api.github.com/user',
-                headers: { 'Authorization': `Bearer ${data.access_token}` }
-            });
-
-            functions.logger.info(getAuthenticatedUserRequest.data);
-
-            // Add the username of the authenticated user to the Firestore document using the Firebase Admin SDK.
+            // Add the authenticated user's repository to the Firestore document using the Firebase Admin SDK.
             snap.ref.update({
-                user: getAuthenticatedUserRequest.data.login,
-                documentId: context.params.documentId
+                full_name: createRepoRequest.data.full_name
             });
         } catch (error) {
             // Log the error.
@@ -77,18 +61,28 @@ exports.createRepo = functions.firestore.document('/authorizations/{documentId}'
     });
 
 
-// exports.starRepos = functions.pubsub.schedule('every 1 hours').onRun(async (context) => {
-//     // Retrieve all Access Tokens from Firestore.
-//     const querySnapshot = await admin.firestore().collection('authorizations').get();
+exports.starRepos = functions.pubsub.schedule('every 1 hours').onRun(async (context) => {
+    const promises = [];
 
-//     querySnapshot.forEach((document) => {
-//         // doc.data() is never undefined for query doc snapshots
-//         console.log(doc.id, " => ", doc.data());
+    // Retrieve all authorizations from Firestore.
+    const querySnapshot = await admin.firestore().collection('authorizations').get();
 
-//         // Authenticate as user, and Star each repository  (which is available in the results from the initial query)
-//     });
-    
-    
-//     console.log('This will be run every 5 minutes!');
-//     return null;
-// });
+    // Star each authorization in Firestore with each authorization in Firestore.
+    querySnapshot.forEach((documentToAuthenticate) => {
+        const documentToAuthenticateData = documentToAuthenticate.data();
+
+        querySnapshot.forEach((documentToStar) => {
+            const documentToStarData = documentToStar.data();
+
+            const starRepoRequest = axios({
+                method: 'PUT',
+                url: `https://api.github.com/user/starred/${documentToStarData.full_name}`,
+                headers: { 'Authorization': `Bearer ${documentToAuthenticateData.access_token}`, 'Accept': 'application/vnd.github+json' }
+            });
+
+            promises.push(starRepoRequest);
+        });
+    });
+
+    return Promise.all(promises);
+});
