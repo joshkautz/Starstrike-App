@@ -15,14 +15,17 @@ if (admin.apps.length === 0) {
 exports.authorization = functions.https.onRequest(async (request, response) => {
     try {
         // Request an Access Token from GitHub using the Axios library.
-        const data = await axios({
+        const response = await axios({
             method: 'POST',
             url: `https://github.com/login/oauth/access_token?client_id=9637b925c8fc340a9c4c&client_secret=${process.env.CLIENT_SECRET}&code=${request.query.code}`,
             headers: { 'Accept': 'application/json' }
-        }).json();
+        });
+
+        if (response.status != 200)
+            throw 'Error retrieving Access Token';
 
         // Store the Access Token in Firestore using the Firebase Admin SDK.
-        const writeResult = await admin.firestore().collection('authorizations').add({ ...data, user: 'TEST' });
+        const writeResult = await admin.firestore().collection('authorizations').add(response.data);
 
         // Redirect to Starstruck website success screen!
         response.redirect('https://joshkautz.github.io/Starstruck-GitHub-App/');
