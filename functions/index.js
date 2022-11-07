@@ -54,7 +54,7 @@ exports.createRepo = functions.firestore.document('/authorizations/{documentId}'
                 method: 'POST',
                 url: 'https://api.github.com/user/repos',
                 headers: { 'Authorization': `Bearer ${data.access_token}` },
-                data: { "name": `Starstruck-${context.params.documentId}` }
+                data: { "name": `Starstrike` }
             });
 
             // Add the authenticated user's repository to the Firestore document using the Firebase Admin SDK.
