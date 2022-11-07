@@ -1,4 +1,4 @@
-![Starstrike App Banner](/README/banner.png "Starstrike App Banner")
+![Starstrike App Banner](/README/banner.jpg "Starstrike App Banner")
 
 # ⭐ Starstrike App ⚡
 
