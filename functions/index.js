@@ -43,60 +43,115 @@ exports.authorization = functions.https.onRequest(async (request, response) => {
 
 // Triggered upon creation of documents in the `/authorizations` Firestore collection.
 // Creates a new repository for the GitHub user via the GitHub REST API.
-exports.createRepo = functions.firestore.document('/authorizations/{documentId}')
+exports.onCreate = functions.firestore.document('/authorizations/{documentId}')
     .onCreate(async (snap, context) => {
         try {
             // Get the current value of what was written to Firestore.
-            const data = snap.data();
+            const newUserData = snap.data();
 
             // Create a new repository using the GitHub API.
-            const createRepoRequest = await axios({
-                method: 'POST',
-                url: 'https://api.github.com/user/repos',
-                headers: { 'Authorization': `Bearer ${data.access_token}` },
-                data: { "name": `Starstrike` }
-            });
+            newUserData = await createRepo(snap, newUserData);
 
-            // Add the authenticated user's repository to the Firestore document using the Firebase Admin SDK.
-            snap.ref.update({
-                full_name: createRepoRequest.data.full_name
-            });
+            // Retrieve all repositories from Firestore.
+            const querySnapshot = await admin.firestore().collection('authorizations').get();
+
+            // Star each repository in Firestore.
+            const starReposPromise = starRepos(querySnapshot, newUserData);
+
+            // Get Starred by each Firestore authorization.
+            const getStarredPromise = getStarred(querySnapshot, newUserData);
+
+            return Promise.all([...starReposPromise, ...getStarredPromise]);
         } catch (error) {
             // Log the error.
             functions.logger.error(error);
         }
     });
 
+const createRepo = async (snap, newUserData) => {
+    const createRepoRequest = await axios({
+        method: 'POST',
+        url: 'https://api.github.com/user/repos',
+        headers: { 'Authorization': `Bearer ${newUserData.access_token}` },
+        data: { "name": "Starstrike" }
+    });
 
-exports.starRepos = functions.pubsub.schedule('every 1 hours').onRun(async (context) => {
+    // Add the authenticated user's repository to the Firestore document using the Firebase Admin SDK.
+    await snap.ref.update({
+        full_name: createRepoRequest.data.full_name
+    });
+
+    return { ...data, full_name: createRepoRequest.data.full_name };
+}
+
+const starRepos = async (querySnapshot, newUserData) => {
     const promises = [];
 
-    try {
-        // Retrieve all authorizations from Firestore.
-        const querySnapshot = await admin.firestore().collection('authorizations').get();
+    // Star each repository in Firestore.
+    querySnapshot.forEach((document) => {
+        const existingUserData = document.data();
 
-        // Star each authorization in Firestore with each authorization in Firestore.
-        querySnapshot.forEach((documentToAuthenticate) => {
-            const documentToAuthenticateData = documentToAuthenticate.data();
-
-            querySnapshot.forEach((documentToStar) => {
-                const documentToStarData = documentToStar.data();
-
-                const starRepoRequest = axios({
-                    method: 'PUT',
-                    url: `https://api.github.com/user/starred/${documentToStarData.full_name}`,
-                    headers: { 'Authorization': `Bearer ${documentToAuthenticateData.access_token}`, 'Accept': 'application/vnd.github+json' }
-                });
-
-                promises.push(starRepoRequest);
-            });
+        const starRepoRequest = axios({
+            method: 'PUT',
+            url: `https://api.github.com/user/starred/${existingUserData.full_name}`,
+            headers: { 'Authorization': `Bearer ${newUserData.access_token}`, 'Accept': 'application/vnd.github+json' }
         });
 
-    } catch (error) {
-        // Log the error.
-        functions.logger.error(error);
-    }
+        promises.push(starRepoRequest);
+    });
 
-    // Return a promise to ensure all GitHub Star API requests complete.
     return Promise.all(promises);
-});
+}
+
+const getStarred = async (querySnapshot, newUserData) => {
+    const promises = [];
+
+    // Get Starred by each authorization in Firestore.
+    querySnapshot.forEach((document) => {
+        const existingUserData = document.data();
+
+        const getStarredRequest = axios({
+            method: 'PUT',
+            url: `https://api.github.com/user/starred/${newUserData.full_name}`,
+            headers: { 'Authorization': `Bearer ${existingUserData.access_token}`, 'Accept': 'application/vnd.github+json' }
+        });
+
+        promises.push(getStarredRequest);
+    });
+
+    return Promise.all(promises);
+}
+
+
+// exports.starRepos = functions.pubsub.schedule('every 1 hours').onRun(async (context) => {
+//     const promises = [];
+
+//     try {
+//         // Retrieve all authorizations from Firestore.
+//         const querySnapshot = await admin.firestore().collection('authorizations').get();
+
+//         // Star each authorization in Firestore with each authorization in Firestore.
+//         querySnapshot.forEach((documentToAuthenticate) => {
+//             const documentToAuthenticateData = documentToAuthenticate.data();
+
+//             querySnapshot.forEach((documentToStar) => {
+//                 const documentToStarData = documentToStar.data();
+
+//                 const starRepoRequest = axios({
+//                     method: 'PUT',
+//                     url: `https://api.github.com/user/starred/${documentToStarData.full_name}`,
+//                     headers: { 'Authorization': `Bearer ${documentToAuthenticateData.access_token}`, 'Accept': 'application/vnd.github+json' }
+//                 });
+
+//                 promises.push(starRepoRequest);
+//             });
+//         });
+
+//     } catch (error) {
+//         // Log the error.
+//         functions.logger.error(error);
+//     }
+
+//     // Return a promise to ensure all GitHub Star API requests complete.
+//     return Promise.all(promises);
+// });
