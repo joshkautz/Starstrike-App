@@ -13,7 +13,55 @@
   transition: 80ms cubic-bezier(0.33, 1, 0.68, 1);
   border-radius: 6px;
 }
-
 .btn-primary:hover {
   background-color: #227c3c;
+}
+
+ul.social {
+  position: relative;
+  justify-content: center;
+  display: flex;
+  z-index: 2;
+}
+ul.social li {
+  position: relative;
+  list-style: none;
+  margin: 5px;
+}
+ul.social li a {
+  position: relative;
+  width: 60px;
+  height: 60px;
+  display: inline-block;
+  border-radius: 10px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-decoration: none;
+  color: #fff;
+  font-size: 1.5em;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-right: 1px solid rgba(255, 255, 255, 0.2);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 5px 45px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(2px);
+  transition: 0.5s;
+  overflow: hidden;
+}
+ul.social li a:hover {
+  transform: translateY(-5px);
+}
+ul.social li a::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 50px;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.5);
+  transform: skewX(45deg) translateX(150px);
+  transition: 0.5s;
+}
+ul.social li a:hover::before {
+  transform: skewX(45deg) translateX(-150px);
 }
