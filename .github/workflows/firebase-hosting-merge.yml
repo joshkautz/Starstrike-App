@@ -15,7 +15,7 @@ jobs:
     name: Checkout and Deploy to Firebase Hosting Live Channel
     runs-on: ubuntu-latest
     steps:
-      - name: Check out Repository
+      - name: Checkout Repository
         uses: actions/checkout@v3
 
       - name: Deploy to Firebase Hosting Preview Channel
